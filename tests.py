@@ -1,64 +1,92 @@
 import pytest
 import requests
+import requests_mock
+import os
+import json
 from typer.testing import CliRunner
-from unittest.mock import patch, mock_open
-from main import app, save_response, count_files
+from main import app
 
 runner = CliRunner()
 
 
-def test_get_request():
-    url = "https://learn.microsoft.com/ru-ru/dotnet/csharp/advanced-topics/interop/using-type-dynamic"
-    result = runner.invoke(app, ["get", url])
+# Фикстура для очистки директории с json перед тестами
+@pytest.fixture(autouse=True)
+def clean_json_folder():
+    if os.path.exists('json'):
+        for f in os.listdir('json'):
+            os.remove(os.path.join('json', f))
+    yield
+    if os.path.exists('json'):
+        for f in os.listdir('json'):
+            os.remove(os.path.join('json', f))
+
+
+def test_get_request(requests_mock):
+    url = "https://ya.ru"
+    requests_mock.get(url, text='mocked response')
+
+    result = runner.invoke(app, ['get', url, '--save'])
     assert result.exit_code == 0
+
+    # Проверяем, что файл был создан
+    assert os.path.exists('json/saved_contents0.json')
+
+    # Проверяем содержимое файла
+    with open('json/saved_contents0.json', 'r') as f:
+        saved_data = json.load(f)
+        assert saved_data['url'] == url + '/'
+        assert saved_data['request method'] == 'GET'
+
+
+
 
 
 def test_post_request(requests_mock):
-    url = "https://learn.microsoft.com/ru-ru/dotnet/csharp/advanced-topics/interop/using-type-dynamic"
-    requests_mock.post(url, json={"key": "value"}, status_code=200)
+    url = "https://ya.ru"
+    requests_mock.post(url, text='mocked response')
 
-    result = runner.invoke(app, ["post", url, "--json-data", '{"key": "value"}'])
-
+    result = runner.invoke(app, ['post', url, '--save'])
     assert result.exit_code == 0
+
+    # Проверяем, что файл был создан
+    assert os.path.exists('json/saved_contents0.json')
+
+    # Проверяем содержимое файла
+    with open('json/saved_contents0.json', 'r') as f:
+        saved_data = json.load(f)
+        assert saved_data['url'] == url + '/'
+        assert saved_data['request method'] == 'POST'
 
 
 def test_put_request(requests_mock):
-    url = "https://learn.microsoft.com/ru-ru/dotnet/csharp/advanced-topics/interop/using-type-dynamic"
-    requests_mock.put(url, json={"key": "value"}, status_code=200)
+    url = "https://ya.ru"
+    requests_mock.put(url, text='mocked response')
 
-    result = runner.invoke(app, ["put", url, "--json-data", '{"key": "value"}'])
-
+    result = runner.invoke(app, ['put', url, '--save'])
     assert result.exit_code == 0
-    assert "key" in result.output
+
+    # Проверяем, что файл был создан
+    assert os.path.exists('json/saved_contents0.json')
+
+    # Проверяем содержимое файла
+    with open('json/saved_contents0.json', 'r') as f:
+        saved_data = json.load(f)
+        assert saved_data['url'] == url + '/'
+        assert saved_data['request method'] == 'PUT'
 
 
 def test_delete_request(requests_mock):
-    url = "https://learn.microsoft.com/ru-ru/dotnet/csharp/advanced-topics/interop/using-type-dynamic"
-    requests_mock.delete(url, status_code=204)
+    url = "https://ya.ru"
+    requests_mock.delete(url, text='mocked response')
 
-    result = runner.invoke(app, ["delete", url])
-
+    result = runner.invoke(app, ['delete', url, '--save'])
     assert result.exit_code == 0
 
+    # Проверяем, что файл был создан
+    assert os.path.exists('json/saved_contents0.json')
 
-@patch("os.listdir", return_value=["saved_contents0.json"])
-@patch("os.path.isfile", return_value=True)
-def test_count_files(mock_isfile, mock_listdir):
-    assert count_files("json") == 1
-
-
-@patch("builtins.open", new_callable=mock_open)
-@patch("os.makedirs")
-@patch("os.path.exists", return_value=False)
-def test_save_response(mock_exists, mock_makedirs, mock_open, requests_mock):
-    url = "https://learn.microsoft.com/ru-ru/dotnet/csharp/advanced-topics/interop/using-type-dynamic"
-    requests_mock.get(url, json={"key": "value"}, status_code=200)
-    response = requests.get(url)
-
-    save_response(response)
-
-    mock_makedirs.assert_called_once_with("json")
-    mock_open.assert_called_once_with("json/saved_contents0.json", "w")
-
-    handle = mock_open()
-    handle.write.assert_called_once()
+    # Проверяем содержимое файла
+    with open('json/saved_contents0.json', 'r') as f:
+        saved_data = json.load(f)
+        assert saved_data['url'] == url + '/'
+        assert saved_data['request method'] == 'DELETE'

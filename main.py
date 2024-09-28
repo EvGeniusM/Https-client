@@ -7,28 +7,25 @@ app = typer.Typer()
 
 
 @app.command()
-def get(url: str, params=None, save=False):
+def get(url: str, params=None, save: bool = False):
     response = requests.get(url, params=params)
     if save:
         save_response(response)
 
-
 @app.command()
-def post(url: str, data=None, json_data=None, save=False):
+def post(url: str, data=None, json_data=None, save: bool = False):
     response = requests.post(url, data=data, json=json_data)
     if save:
         save_response(response)
 
-
 @app.command()
-def put(url: str, data=None, json_data=None, save=False):
+def put(url: str, data=None, json_data=None, save: bool = False):
     response = requests.put(url, data=data, json=json_data)
     if save:
         save_response(response)
 
-
 @app.command()
-def delete(url: str, save=False):
+def delete(url: str, save: bool = False):
     response = requests.delete(url)
     if save:
         save_response(response)
@@ -44,6 +41,8 @@ def save_response(response: requests.Response):
         'request method': response.request.method,
         'timeout': str(response.elapsed),
         'headers': dict(response.headers),
+        'body': str(response.url),
+        'cookies': str(response.cookies),
     }
 
     if not os.path.exists('json'):
