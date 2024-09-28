@@ -1,30 +1,56 @@
 import typer
 import requests
 import json
-from os import path, makedirs
+import os
 
 app = typer.Typer()
 
 
 @app.command()
-def get(url: str, save=False):
-    request = requests.get(url)
+def get(url: str, params=None, save=False):
+    response = requests.get(url, params=params)
     if save:
-        dictionary = {
-            'url': request.url,
-            'request method': 'get',
-            'timeout': str(request.elapsed),
-            'headers': dict(request.headers),
-        }
+        save_response(response)
 
-        if not path.exists('json'):
-            makedirs('json')
 
-        with open('json/saved_contents.json', 'w') as f:
-            json.dump(dict(dictionary), f)
-            print(save)
-    else:
-        print("I did nothing")
+@app.command()
+def post(url: str, data=None, json_data=None, save=False):
+    response = requests.post(url, data=data, json=json_data)
+    if save:
+        save_response(response)
+
+
+@app.command()
+def put(url: str, data=None, json_data=None, save=False):
+    response = requests.put(url, data=data, json=json_data)
+    if save:
+        save_response(response)
+
+
+@app.command()
+def delete(url: str, save=False):
+    response = requests.delete(url)
+    if save:
+        save_response(response)
+
+
+def count_files(directory):
+    return len([file for file in os.listdir(directory) if os.path.isfile(os.path.join(directory, file))])
+
+
+def save_response(response: requests.Response):
+    dictionary = {
+        'url': response.url,
+        'request method': response.request.method,
+        'timeout': str(response.elapsed),
+        'headers': dict(response.headers),
+    }
+
+    if not os.path.exists('json'):
+        os.makedirs('json')
+
+    with open(f'json/saved_contents{count_files("json")}.json', 'w') as f:
+        json.dump(dict(dictionary), f)
 
 
 if __name__ == "__main__":
