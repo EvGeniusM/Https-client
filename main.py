@@ -42,7 +42,8 @@ def save_response(response: requests.Response):
         'timeout': str(response.elapsed),
         'headers': dict(response.headers),
         'body': str(response.url),
-        'cookies': str(response.cookies),
+        ''
+        '': str(response.cookies),
     }
 
     if not os.path.exists('json'):
