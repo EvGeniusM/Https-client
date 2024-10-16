@@ -17,39 +17,50 @@ def help():
 
 
 @app.command()
-def get(url: str, params=None, data=None, headers=None, cookies=None, save=False, timeout=1000):
-    headers = headers.strip().split(';')
-    proc_headers = param_str_to_dict(headers)
-    proc_cookies = param_str_to_dict(cookies)
-    response = requests.get(url, headers=proc_headers, cookies=proc_cookies, params=params, data=data, timeout=int(timeout))
-    if save:  # ?
+def get(url: str, params=None, data=None, headers=None, cookies=None, save:bool=False, timeout=1000):
+    if headers is not None:
+        headers = param_str_to_dict(headers.strip())
+    if cookies is not None:
+        cookies = param_str_to_dict(cookies.strip())
+    else:
+        cookies = {}
+    response = requests.get(url, headers=headers, cookies=cookies, params=params, data=data, timeout=int(timeout))
+    if save:
+        save_response_as_html(response)
+    print(response.status_code)
+    return response
+
+
+@app.command()
+def post(url: str, data=None, headers=None, cookies=None, json_data=None, save:bool=False, timeout=1000):
+    if headers is not None:
+        headers = param_str_to_dict(headers)
+    if cookies is not None:
+        cookies = param_str_to_dict(cookies)
+    response = requests.post(url, headers=headers, cookies=cookies, data=data, json=json_data, timeout=int(timeout))
+    if save:
         save_response_as_html(response)
     print(response.status_code)
 
 
 @app.command()
-def post(url: str, data=None, headers=None, cookies=None, json_data=None, save=False, timeout=1000):
-    proc_headers = param_str_to_dict(headers)
-    proc_cookies = param_str_to_dict(cookies)
-    response = requests.post(url, headers=proc_headers, cookies=proc_cookies, data=data, json=json_data, timeout=int(timeout))
+def put(url: str, data=None, headers=None, json_data=None, save:bool=False, timeout=1000):
+    if headers is not None:
+        headers = param_str_to_dict(headers)
+    response = requests.put(url, headers=headers, data=data, json=json_data, timeout=int(timeout))
     if save:
         save_response_as_html(response)
+    print(response.status_code)
 
 
 @app.command()
-def put(url: str, data=None, headers=None, json_data=None, save=False, timeout=1000):
-    proc_headers = param_str_to_dict(headers)
-    response = requests.put(url, headers=proc_headers, data=data, json=json_data, timeout=int(timeout))
+def delete(url: str, headers=None, save:bool=False, timeout=1000):
+    if headers is not None:
+        headers = param_str_to_dict(headers)
+    response = requests.delete(url, headers=headers, timeout=int(timeout))
     if save:
         save_response_as_html(response)
-
-
-@app.command()
-def delete(url: str, headers=None, save=False, timeout=1000):
-    proc_headers = param_str_to_dict(headers)
-    response = requests.delete(url, headers=proc_headers, timeout=int(timeout))
-    if save:
-        save_response_as_html(response)
+    print(response.status_code)
 
 
 def count_files(directory):
@@ -81,15 +92,19 @@ def save_response_as_html(response: requests.Response):
 
 def param_str_to_dict(raw: str) -> dict:
     pairs = raw.strip().split(';')
-    result = dict()
+    result = {}
     try:
         for pair in pairs:
-            args = pair.split(':')
+            args = pair.split(':') if ':' in pair else pair.split('=')
             args = [arg.strip() for arg in args]
-            result[args[0]] = args[1]
-    except Exception:
-        print("Wrong param instruction, check 'help' to get info")
+            if len(args) == 2:  # Убедитесь, что есть ключ и значение
+                result[args[0]] = args[1]
+            else:
+                print(f"Invalid pair format: {pair}")
+    except Exception as e:
+        print(f"Wrong param instruction, check 'help' to get info: {e}")
     return result
+
 
 
 if __name__ == "__main__":
