@@ -1,6 +1,5 @@
 import typer
 import requests
-import json
 import os
 
 
@@ -37,10 +36,13 @@ def post(url: str, data=None, headers=None, cookies=None, json_data=None, save:b
         headers = param_str_to_dict(headers)
     if cookies is not None:
         cookies = param_str_to_dict(cookies)
+    else:
+        cookies = {}
     response = requests.post(url, headers=headers, cookies=cookies, data=data, json=json_data, timeout=int(timeout))
     if save:
         save_response_as_html(response)
     print(response.status_code)
+    return response
 
 
 @app.command()
@@ -51,6 +53,7 @@ def put(url: str, data=None, headers=None, json_data=None, save:bool=False, time
     if save:
         save_response_as_html(response)
     print(response.status_code)
+    return response
 
 
 @app.command()
@@ -61,25 +64,11 @@ def delete(url: str, headers=None, save:bool=False, timeout=1000):
     if save:
         save_response_as_html(response)
     print(response.status_code)
+    return response
 
 
 def count_files(directory):
     return len([file for file in os.listdir(directory) if os.path.isfile(os.path.join(directory, file))])
-
-
-def save_response_as_json(response: requests.Response):
-    dictionary = {
-        'url': response.url,
-        'request method': response.request.method,
-        'timeout': str(response.elapsed),
-        'headers': dict(response.headers),
-    }
-
-    if not os.path.exists('json'):
-        os.makedirs('json')
-
-    with open(f'json/saved_contents{count_files("json")}.json', 'w') as f:
-        json.dump(dict(dictionary), f)
 
 
 def save_response_as_html(response: requests.Response):
@@ -97,14 +86,13 @@ def param_str_to_dict(raw: str) -> dict:
         for pair in pairs:
             args = pair.split(':') if ':' in pair else pair.split('=')
             args = [arg.strip() for arg in args]
-            if len(args) == 2:  # Убедитесь, что есть ключ и значение
+            if len(args) == 2:
                 result[args[0]] = args[1]
             else:
                 print(f"Invalid pair format: {pair}")
     except Exception as e:
         print(f"Wrong param instruction, check 'help' to get info: {e}")
     return result
-
 
 
 if __name__ == "__main__":
