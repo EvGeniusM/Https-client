@@ -1,5 +1,4 @@
 import typer
-import requests
 import os
 from requests.get import http_get
 from requests.post import http_post
@@ -22,11 +21,13 @@ def help():
 def get(url: str, headers=None, cookies=None, save: bool = False, timeout=1000):
     if headers is not None:
         headers = param_str_to_dict(headers.strip())
+    else:
+        headers = {}
     if cookies is not None:
         cookies = param_str_to_dict(cookies.strip())
     else:
         cookies = {}
-    response = http_get(url, cookies, headers, timeout)
+    response = http_get(url, cookies, headers, int(timeout))
     # response = requests.get(url, headers=headers, cookies=cookies, params=params, data=data, timeout=int(timeout))
     if save:
         save_response_as_html(response)
@@ -38,11 +39,13 @@ def get(url: str, headers=None, cookies=None, save: bool = False, timeout=1000):
 def post(url: str, data=None, headers=None, cookies=None, save: bool = False, timeout=1000):
     if headers is not None:
         headers = param_str_to_dict(headers)
+    else:
+        headers = {}
     if cookies is not None:
         cookies = param_str_to_dict(cookies)
     else:
         cookies = {}
-    response = http_post(url, data, headers, cookies, timeout)
+    response = http_post(url, data, headers, cookies, int(timeout))
     # response = requests.post(url, headers=headers, cookies=cookies, data=data, json=json_data, timeout=int(timeout))
     if save:
         save_response_as_html(response)
@@ -54,8 +57,13 @@ def post(url: str, data=None, headers=None, cookies=None, save: bool = False, ti
 def put(url: str, data=None, headers=None, cookies=None, save: bool = False, timeout=1000):
     if headers is not None:
         headers = param_str_to_dict(headers)
-    response = http_put(url, data, headers, cookies, timeout)
-    # response = requests.put(url, headers=headers, data=data, json=json_data, timeout=int(timeout))
+    else:
+        headers = {}
+    if cookies is not None:
+        cookies = param_str_to_dict(cookies)
+    else:
+        cookies = {}
+    response = http_put(url, data, headers, cookies, int(timeout))
     if save:
         save_response_as_html(response)
     print(response.status_code)
@@ -66,8 +74,13 @@ def put(url: str, data=None, headers=None, cookies=None, save: bool = False, tim
 def delete(url: str, headers=None, cookies=None, save: bool = False, timeout=1000):
     if headers is not None:
         headers = param_str_to_dict(headers)
-    response = http_delete(url, headers, cookies, timeout)
-    # response = requests.delete(url, headers=headers, timeout=int(timeout))
+    else:
+        headers = {}
+    if cookies is not None:
+        cookies = param_str_to_dict(cookies)
+    else:
+        cookies = {}
+    response = http_delete(url, headers, cookies, int(timeout))
     if save:
         save_response_as_html(response)
     print(response.status_code)
@@ -78,7 +91,7 @@ def count_files(directory):
     return len([file for file in os.listdir(directory) if os.path.isfile(os.path.join(directory, file))])
 
 
-def save_response_as_html(response: requests.Response):
+def save_response_as_html(response):
     if not os.path.exists('html'):
         os.makedirs('html')
 

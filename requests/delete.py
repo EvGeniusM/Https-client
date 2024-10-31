@@ -2,7 +2,6 @@ import socket
 from urllib.parse import urlparse
 from response import Response
 
-
 def http_delete(url, headers=None, cookies=None, timeout=1000):
     parsed_url = urlparse(url)
     host = parsed_url.netloc
@@ -38,6 +37,10 @@ def http_delete(url, headers=None, cookies=None, timeout=1000):
                 break
             response += part
 
+        if not response:
+            print("Received empty response.")
+            return None
+
     except socket.timeout:
         print("Request timed out.")
         return None
@@ -49,6 +52,10 @@ def http_delete(url, headers=None, cookies=None, timeout=1000):
 
     response_str = response.decode()
     response_lines = response_str.splitlines()
+
+    if not response_lines:
+        print("No response lines found.")
+        return None
 
     status_line = response_lines[0]
     status_code = int(status_line.split()[1])

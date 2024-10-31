@@ -12,4 +12,3 @@ class Response:
 
     def get_content(self):
         return self.contents
-    
