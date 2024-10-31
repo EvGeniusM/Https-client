@@ -28,7 +28,6 @@ def get(url: str, headers=None, cookies=None, save: bool = False, timeout=1000):
     else:
         cookies = {}
     response = http_get(url, cookies, headers, int(timeout))
-    # response = requests.get(url, headers=headers, cookies=cookies, params=params, data=data, timeout=int(timeout))
     if save:
         save_response_as_html(response)
     print(response.status_code)
@@ -46,7 +45,6 @@ def post(url: str, data=None, headers=None, cookies=None, save: bool = False, ti
     else:
         cookies = {}
     response = http_post(url, data, headers, cookies, int(timeout))
-    # response = requests.post(url, headers=headers, cookies=cookies, data=data, json=json_data, timeout=int(timeout))
     if save:
         save_response_as_html(response)
     print(response.status_code)

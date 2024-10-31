@@ -17,7 +17,7 @@ class TestHttpDelete(unittest.TestCase):
             "Content-Length: 0\r\n"
             "\r\n"
         )
-        mock_sock_instance.recv.side_effect = [response_data.encode(), b'']  # Ответ должен быть в байтах
+        mock_sock_instance.recv.side_effect = [response_data.encode(), b'']
 
         url = "http://testurl.com/path"
         headers = {'Custom-Header': 'Value'}
