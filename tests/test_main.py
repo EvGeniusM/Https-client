@@ -71,7 +71,6 @@ class TestHttpClient(unittest.TestCase):
         count = main.count_files('test_directory')
         self.assertEqual(count, 2)
 
-
     @patch('os.makedirs')
     @patch('builtins.open', new_callable=mock_open)
     @patch('os.path.exists')
@@ -79,10 +78,10 @@ class TestHttpClient(unittest.TestCase):
     def test_save_response_as_html(self, mock_count_files, mock_exists, mock_open_file, mock_makedirs):
         mock_exists.return_value = False
         mock_response = MagicMock()
-        mock_response.content = b'Test content'
+        mock_response.get_content.return_value = 'Test content'
         main.save_response_as_html(mock_response)
         mock_makedirs.assert_called_once_with('html')
-        mock_open_file.assert_called_once_with('html/saved_contents0.html', 'w')
+        mock_open_file.assert_called_once_with('html/saved_contents0.html', 'w', encoding='utf-8')
         mock_open_file().write.assert_called_once_with('Test content')
 
     def test_param_str_to_dict(self):
@@ -94,14 +93,12 @@ class TestHttpClient(unittest.TestCase):
         }
         self.assertEqual(result, expected)
 
-        result_invalid = main.param_str_to_dict("key1:value1;invalid_pair")
-        expected_invalid = {
-            'key1': 'value1'
-        }
-        self.assertEqual(result_invalid, expected_invalid)
+        with self.assertRaises(main.InvalidParamError):
+            main.param_str_to_dict("key1:value1;invalid_pair")
 
         result_empty = main.param_str_to_dict("")
         self.assertEqual(result_empty, {})
+
 
 if __name__ == '__main__':
     unittest.main()

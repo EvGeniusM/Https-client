@@ -2,7 +2,12 @@ import socket
 import ssl
 from urllib.parse import urlparse, urljoin
 from response import Response
-
+from exceptions import (
+    TimeoutError,
+    ConnectionError,
+    RedirectError,
+    ResponseDecodeError
+)
 
 def http_get(url, headers=None, cookies=None, timeout=1000, max_redirects=5):
     parsed_url = urlparse(url)
@@ -12,30 +17,35 @@ def http_get(url, headers=None, cookies=None, timeout=1000, max_redirects=5):
     if parsed_url.query:
         path += '?' + parsed_url.query
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(timeout)
-
     context = ssl.create_default_context()
-
     redirect_count = 0
 
     while redirect_count < max_redirects:
-        with context.wrap_socket(sock, server_hostname=host) as wrapped_sock:
-            try:
-                wrapped_sock.connect((host, 443))
+        try:
+            sock = socket.create_connection((host, 443), timeout=timeout)
+        except socket.timeout:
+            raise TimeoutError()
+        except Exception as e:
+            raise ConnectionError(f"Connection error: {e}")
 
-                request = [f"GET {path} HTTP/1.1\r\n", f"Host: {host}\r\n", "Connection: close\r\n"]
+        try:
+            with context.wrap_socket(sock, server_hostname=host) as wrapped_sock:
+                request_lines = [
+                    f"GET {path} HTTP/1.1\r\n",
+                    f"Host: {host}\r\n",
+                    "Connection: close\r\n"
+                ]
+
                 if headers:
                     for key, value in headers.items():
-                        request.append(f"{key}: {value}\r\n")
+                        request_lines.append(f"{key}: {value}\r\n")
 
                 if cookies:
                     cookie_header = "; ".join(f"{key}={value}" for key, value in cookies.items())
-                    request.append(f"Cookie: {cookie_header}\r\n")
+                    request_lines.append(f"Cookie: {cookie_header}\r\n")
 
-                request.append("\r\n")
-                request = ''.join(request)
-
+                request_lines.append("\r\n")
+                request = ''.join(request_lines)
                 wrapped_sock.sendall(request.encode())
 
                 response = b""
@@ -45,59 +55,77 @@ def http_get(url, headers=None, cookies=None, timeout=1000, max_redirects=5):
                         break
                     response += part
 
-            except socket.timeout:
-                print("Request timed out.")
-                return None
-            except Exception as e:
-                print(f"An error occurred: {e}")
-                return None
+        except socket.timeout:
+            raise TimeoutError()
+        except Exception as e:
+            raise ConnectionError(f"Connection error: {e}")
+        finally:
+            sock.close()
 
-        response_str = response.decode()
+        if not response:
+            raise ConnectionError("Received an empty response from the server.")
+
+        try:
+            response_str = response.decode("utf-8", errors="replace")
+        except UnicodeDecodeError:
+            raise ResponseDecodeError("Failed to decode response")
+
         response_lines = response_str.splitlines()
 
+        if not response_lines:
+            raise ResponseDecodeError("Empty response lines.")
+
         status_line = response_lines[0]
-        status_code = int(status_line.split()[1])
+        try:
+            status_code = int(status_line.split()[1])
+        except (IndexError, ValueError):
+            raise ResponseDecodeError(f"Invalid status line: {status_line}")
 
         if status_code in (301, 302, 303, 307, 308):
-            headers = {}
+            redirect_headers = {}
             for line in response_lines[1:]:
                 if line == '':
                     break
-                key, value = line.split(': ', 1)
-                headers[key] = value
+                try:
+                    key, value = line.split(': ', 1)
+                    redirect_headers[key] = value
+                except ValueError:
+                    continue
 
-            if 'Location' in headers:
-                new_url = headers['Location']
+            if 'Location' in redirect_headers:
+                new_url = redirect_headers['Location']
                 if not new_url.startswith('http'):
                     new_url = urljoin(url, new_url)
-                print(f"Redirecting to: {new_url}")
+
                 url = new_url
                 parsed_url = urlparse(url)
                 host = parsed_url.netloc
                 path = parsed_url.path if parsed_url.path else '/'
                 if parsed_url.query:
                     path += '?' + parsed_url.query
+
                 redirect_count += 1
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(timeout)
                 continue
 
         break
 
     if redirect_count >= max_redirects:
-        print("Maximum redirect limit reached.")
-        return None
+        raise RedirectError()
 
-    headers = {}
+    response_headers = {}
     for line in response_lines[1:]:
         if line == '':
             break
-        key, value = line.split(': ', 1)
-        headers[key] = value
+        try:
+            key, value = line.split(': ', 1)
+            response_headers[key] = value
+        except ValueError:
+            continue
 
     content = response_str.split("\r\n\r\n", 1)[1] if "\r\n\r\n" in response_str else ""
 
-    return Response(content, status_code, headers)
+    return Response(content, status_code, response_headers)
+
 
 
 def save_response_to_file(response, filename):

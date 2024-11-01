@@ -1,5 +1,7 @@
 import typer
 import os
+
+from exceptions import InvalidParamError
 from requests.get import http_get
 from requests.post import http_post
 from requests.put import http_put
@@ -88,28 +90,32 @@ def delete(url: str, headers=None, cookies=None, save: bool = False, timeout=100
 def count_files(directory):
     return len([file for file in os.listdir(directory) if os.path.isfile(os.path.join(directory, file))])
 
-
 def save_response_as_html(response):
     if not os.path.exists('html'):
         os.makedirs('html')
 
-    with open(f'html/saved_contents{count_files("html")}.html', 'w') as f:
-        f.write(response.content.decode(errors='ignore', encoding='windows-1251'))
+    filename = f'html/saved_contents{count_files("html")}.html'
+    with open(filename, 'w', encoding='utf-8') as f:
+        f.write(response.get_content())
+    print(f"Сохранено в файл: {filename}")
 
 
 def param_str_to_dict(raw: str) -> dict:
+    if not raw.strip():  # Проверка на пустую строку или строку, состоящую из пробелов
+        return {}
+
     pairs = raw.strip().split(';')
     result = {}
-    try:
-        for pair in pairs:
-            args = pair.split(':') if ':' in pair else pair.split('=')
-            args = [arg.strip() for arg in args]
-            if len(args) == 2:
-                result[args[0]] = args[1]
-            else:
-                print(f"Invalid pair format: {pair}")
-    except Exception as e:
-        print(f"Wrong param instruction, check 'help' to get info: {e}")
+    for pair in pairs:
+        # Разделяем по ':' или '=' в зависимости от наличия этих символов
+        args = pair.split(':') if ':' in pair else pair.split('=')
+        args = [arg.strip() for arg in args]  # Убираем лишние пробелы
+
+        if len(args) == 2:  # Если есть ключ и значение
+            result[args[0]] = args[1]
+        else:
+            raise InvalidParamError(f"Invalid pair format: {pair}")
+
     return result
 
 
