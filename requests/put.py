@@ -1,8 +1,8 @@
 import socket
 import ssl
-from urllib.parse import urlparse, urlencode, urljoin
+from urllib.parse import urlparse, urljoin
 from response import Response
-from exceptions import TimeoutError, ConnectionError, RedirectError, ResponseDecodeError
+from exceptions import ConnectionError, RedirectError, ResponseDecodeError
 
 
 def create_ssl_connection(host, timeout):
@@ -12,7 +12,6 @@ def create_ssl_connection(host, timeout):
     sock = context.wrap_socket(sock, server_hostname=host)
     sock.connect((host, 443))
     return sock
-
 
 def build_put_request(url, data, headers, cookies):
     if data is None:
@@ -120,17 +119,12 @@ def http_put(url, data=None, headers=None, cookies=None, timeout=1000, max_redir
             parsed_url = urlparse(url)
             host = parsed_url.netloc
             sock = create_ssl_connection(host, timeout)
-
             request = build_put_request(url, data, headers, cookies)
             sock.sendall(request.encode())
-
             response = get_response(sock)
             sock.close()
-
             response_str = decode_response(response)
-
             status_code, response_headers, response_lines = extract_status_and_headers(response_str)
-
             new_url = handle_redirect(url, response_lines, redirect_count, max_redirects)
             if new_url:
                 url = new_url
@@ -144,5 +138,4 @@ def http_put(url, data=None, headers=None, cookies=None, timeout=1000, max_redir
             raise e
         except Exception as e:
             raise ConnectionError(f"An error occurred: {e}")
-
     raise RedirectError("Too many redirects")

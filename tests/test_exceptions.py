@@ -1,5 +1,4 @@
 import unittest
-
 from exceptions import InvalidParamError, TimeoutError, ConnectionError, RedirectError, ResponseDecodeError
 
 

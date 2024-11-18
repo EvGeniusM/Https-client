@@ -101,17 +101,16 @@ def save_response_as_html(response):
 
 
 def param_str_to_dict(raw: str) -> dict:
-    if not raw.strip():  # Проверка на пустую строку или строку, состоящую из пробелов
+    if not raw.strip():
         return {}
 
     pairs = raw.strip().split(';')
     result = {}
     for pair in pairs:
-        # Разделяем по ':' или '=' в зависимости от наличия этих символов
         args = pair.split(':') if ':' in pair else pair.split('=')
-        args = [arg.strip() for arg in args]  # Убираем лишние пробелы
+        args = [arg.strip() for arg in args]
 
-        if len(args) == 2:  # Если есть ключ и значение
+        if len(args) == 2:
             result[args[0]] = args[1]
         else:
             raise InvalidParamError(f"Invalid pair format: {pair}")
